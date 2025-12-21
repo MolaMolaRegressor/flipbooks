@@ -10,7 +10,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+    
         body {
             background: white;
             display: flex;
@@ -18,26 +18,27 @@
             align-items: center;
             min-height: 100vh;
             font-family: Arial, sans-serif;
-            overflow: hidden; /* Убираем скролл */
+            overflow: hidden;
         }
-
+    
+        /* ИЗМЕНЕНИЕ 1: Уже для вертикальных страниц */
         .flipbook {
-            width: 90vw;
-            max-width: 800px; /* УМЕНЬШИЛИ для вертикальных картинок */
-            height: 85vh; /* УВЕЛИЧИЛИ высоту */
+            width: 85vw; /* Было 90vw */
+            max-width: 700px; /* Было 800px - СДЕЛАЛИ УЖЕ */
+            height: 88vh; /* Немного увеличили высоту */
             position: relative;
             overflow: hidden;
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-
+    
         .viewport {
             width: 100%;
             height: 100%;
             position: relative;
             overflow: hidden;
         }
-
+    
         .slider {
             display: flex;
             height: 100%;
@@ -46,7 +47,7 @@
             top: 0;
             transition: transform 0.4s ease;
         }
-
+    
         .page {
             flex: 0 0 100%;
             height: 100%;
@@ -55,26 +56,29 @@
             justify-content: center;
             background: white;
         }
-
-        /* ИЗМЕНЕНИЕ: вертикальные картинки масштабируются по высоте */
+    
+        /* ИЗМЕНЕНИЕ 2: Картинки занимают больше высоты */
         .page img {
-            max-height: 95%; /* Занимает 95% высоты контейнера */
-            width: auto; /* Ширина подстраивается */
+            max-height: 96%; /* Было 95% - чуть больше */
+            max-width: 98%; /* Было 95% - шире в пределах */
+            width: auto;
+            height: auto;
             object-fit: contain;
             display: block;
             margin: 0 auto;
         }
-
+    
+        /* ИЗМЕНЕНИЕ 3: Стрелки ближе к краю */
         .arrow {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 60px;
-            height: 60px;
+            width: 55px; /* Чуть меньше */
+            height: 55px;
             background: white;
             border: 1px solid #ddd;
             border-radius: 50%;
-            font-size: 28px;
+            font-size: 26px; /* Чуть меньше */
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -83,15 +87,15 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transition: all 0.2s;
         }
-
+    
         .arrow:hover {
             background: #f8f8f8;
             transform: translateY(-50%) scale(1.05);
         }
-
-        .arrow-left { left: 25px; }
-        .arrow-right { right: 25px; }
-
+    
+        .arrow-left { left: 20px; } /* Ближе к краю */
+        .arrow-right { right: 20px; }
+    
         .counter {
             position: absolute;
             bottom: 20px;
@@ -103,19 +107,34 @@
             border-radius: 20px;
             font-size: 14px;
         }
-
+    
         @media (max-width: 768px) {
+            /* ИЗМЕНЕНИЕ 4: На мобильных еще уже */
             .flipbook { 
-                height: 75vh; 
+                width: 92vw; /* Было 95vw */
+                height: 78vh; /* Было 75vh */
                 max-width: 95vw;
             }
             .arrow { 
-                width: 50px; 
-                height: 50px; 
-                font-size: 24px; 
+                width: 45px; 
+                height: 45px; 
+                font-size: 22px; 
             }
-            .arrow-left { left: 10px; }
-            .arrow-right { right: 10px; }
+            .arrow-left { left: 8px; } /* Еще ближе на мобильных */
+            .arrow-right { right: 8px; }
+            
+            /* Картинки на мобильных занимают почти всю высоту */
+            .page img {
+                max-height: 98%;
+                max-width: 99%;
+            }
+        }
+    
+        /* ДОПОЛНИТЕЛЬНО: Для очень высоких экранов */
+        @media (min-height: 1000px) {
+            .flipbook {
+                max-width: 650px; /* Еще уже для высоких экранов */
+            }
         }
     </style>
 </head>
@@ -333,5 +352,6 @@
     </script>
 </body>
 </html>
+
 
 
