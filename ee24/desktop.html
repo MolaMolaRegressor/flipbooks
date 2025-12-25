@@ -21,10 +21,11 @@
             overflow: hidden;
         }
 
+        /* ИЗМЕНЕНИЕ 1: ШИРЕ для двух страниц */
         .flipbook {
-            width: 85vw;
-            max-width: 900px;
-            height: 88vh;
+            width: 92vw; /* Было 85vw - ШИРЕ */
+            max-width: 1100px; /* Было 900px - ЗНАЧИТЕЛЬНО ШИРЕ */
+            height: 85vh; /* Немного уменьшили высоту */
             position: relative;
             overflow: hidden;
             border-radius: 8px;
@@ -47,7 +48,7 @@
             transition: transform 0.4s ease;
         }
 
-        /* СТРАНИЦА МОЖЕТ БЫТЬ ОДИНОЧНОЙ ИЛИ В РАЗВОРОТЕ */
+        /* ОДИНОЧНАЯ СТРАНИЦА */
         .page {
             flex: 0 0 100%;
             height: 100%;
@@ -57,7 +58,7 @@
             background: white;
         }
 
-        /* РАЗВОРОТ - 2 страницы рядом */
+        /* РАЗВОРОТ */
         .spread {
             flex: 0 0 100%;
             height: 100%;
@@ -75,7 +76,7 @@
             position: relative;
         }
 
-        /* Разделитель между страницами в развороте */
+        /* Разделитель между страницами */
         .half-page::after {
             content: '';
             position: absolute;
@@ -86,16 +87,14 @@
             background: rgba(0,0,0,0.1);
         }
 
-        /* Для правой страницы убираем разделитель */
         .half-page:last-child::after {
             display: none;
         }
 
-        /* КАРТИНКИ */
-        .page img,
-        .half-page img {
-            max-height: 96%;
-            max-width: 95%;
+        /* ИЗМЕНЕНИЕ 2: Картинки в развороте больше */
+        .page img {
+            max-height: 94%; /* Для обложки/конца */
+            max-width: 60%;  /* Уже чтобы центрировалось */
             width: auto;
             height: auto;
             object-fit: contain;
@@ -103,9 +102,14 @@
             margin: 0 auto;
         }
 
-        /* В развороте картинки чуть уже */
         .half-page img {
-            max-width: 90%;
+            max-height: 94%; /* БОЛЬШЕ чем было */
+            max-width: 85%;  /* ШИРЕ в пределах половинки */
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
 
         .arrow {
@@ -135,6 +139,7 @@
         .arrow-left { left: 20px; }
         .arrow-right { right: 20px; }
 
+        /* ИЗМЕНЕНИЕ 3: Счетчик для двойной нумерации */
         .counter {
             position: absolute;
             bottom: 20px;
@@ -142,16 +147,19 @@
             transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
             color: white;
-            padding: 8px 20px;
+            padding: 10px 24px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 500;
+            min-width: 120px;
+            text-align: center;
         }
 
         @media (max-width: 768px) {
             .flipbook { 
-                width: 92vw;
-                height: 78vh;
-                max-width: 95vw;
+                width: 96vw; /* На мобильных почти на весь экран */
+                height: 75vh;
+                max-width: 98vw;
             }
             .arrow { 
                 width: 45px; 
@@ -161,9 +169,18 @@
             .arrow-left { left: 8px; }
             .arrow-right { right: 8px; }
             
-            .page img,
+            .page img {
+                max-width: 70%; /* На мобильных шире */
+            }
+            
             .half-page img {
-                max-height: 98%;
+                max-width: 90%; /* Почти на всю ширину половинки */
+            }
+            
+            .counter {
+                font-size: 13px;
+                padding: 8px 16px;
+                min-width: 100px;
             }
         }
     </style>
@@ -171,82 +188,97 @@
 <body>
     <div class="flipbook">
         <div class="viewport">
-            <div class="slider" id="slider">
-                <!-- Страницы будут добавлены автоматически -->
-            </div>
+            <div class="slider" id="slider"></div>
         </div>
         <button class="arrow arrow-left" id="prevBtn">‹</button>
         <button class="arrow arrow-right" id="nextBtn">›</button>
-        <div class="counter" id="counter">1 / ?</div>
+        <div class="counter" id="counter">1 / 70</div>
     </div>
 
     <script>
         // ========== НАСТРОЙКИ ==========
-        // ИЗМЕНИТЕ ТОЛЬКО ЭТИ ПЕРЕМЕННЫЕ:
+        const TOTAL_PAGES = 70;
+        const HAS_COVER = true;
+        const HAS_ENDING = true;
+        const IMAGE_FILES = Array.from({length: TOTAL_PAGES}, (_, i) => `${i+1}.jpg`);
         
-        // 1. Сколько всего страниц в книге? (включая обложку и конец)
-        const TOTAL_PAGES = 70; // <-- ПОМЕНЯЙТЕ ЗДЕСЬ
-        
-        // 2. Первая страница - обложка (одиночная)?
-        const HAS_COVER = true; // true = есть обложка, false = нет
-        
-        // 3. Последняя страница - концовка (одиночная)?
-        const HAS_ENDING = true; // true = есть конец, false = нет
-        
-        // 4. Как называются файлы? (автоматически сгенерируются)
-        // Пример: если TOTAL_PAGES = 5, то будут: 1.jpg, 2.jpg, 3.jpg, 4.jpg, 5.jpg
-        const IMAGE_FILES = Array.from(
-            {length: TOTAL_PAGES}, 
-            (_, i) => `${i+1}.jpg`
-        );
-        
-        // ========== РАСЧЕТ РАЗВОРОТОВ ==========
-        let allSpreads = []; // Массив всех разворотов/страниц
+        // ========== РАСЧЕТ ==========
+        let allSpreads = [];
         let totalSpreads = 0;
+        let pageNumberMap = {}; // Карта: spreadIndex → [номера страниц]
         
         function calculateSpreads() {
             allSpreads = [];
+            pageNumberMap = {};
             let imageIndex = 0;
+            let spreadIndex = 0;
             
-            // 1. Обложка (если есть)
+            // 1. Обложка
             if (HAS_COVER && IMAGE_FILES.length > 0) {
                 allSpreads.push({
                     type: 'cover',
-                    images: [IMAGE_FILES[imageIndex]],
-                    displayName: 'Обложка'
+                    images: [IMAGE_FILES[0]],
+                    pageNumbers: [1]
                 });
-                imageIndex++;
+                pageNumberMap[spreadIndex] = [1];
+                imageIndex = 1;
+                spreadIndex++;
             }
             
-            // 2. Основное содержание (развороты по 2)
-            const contentImages = IMAGE_FILES.slice(imageIndex, HAS_ENDING ? -1 : undefined);
+            // 2. Основное содержание
+            const startIndex = HAS_COVER ? 1 : 0;
+            const endIndex = HAS_ENDING ? IMAGE_FILES.length - 1 : IMAGE_FILES.length;
+            const contentImages = IMAGE_FILES.slice(startIndex, endIndex);
             
-            for (let i = 0; i < contentImages.length; i += 2) {
-                const spreadImages = contentImages.slice(i, i + 2);
+            // Вычисляем сколько пар получится
+            const pairsCount = Math.floor(contentImages.length / 2);
+            const remainder = contentImages.length % 2;
+            
+            // Создаем пары
+            for (let i = 0; i < pairsCount; i++) {
+                const leftPageNum = startIndex + (i * 2) + 1;
+                const rightPageNum = leftPageNum + 1;
+                
                 allSpreads.push({
-                    type: spreadImages.length === 2 ? 'spread' : 'single',
-                    images: spreadImages,
-                    displayName: `Разворот ${Math.floor(i/2) + 1}`
+                    type: 'spread',
+                    images: [contentImages[i*2], contentImages[i*2 + 1]],
+                    pageNumbers: [leftPageNum, rightPageNum]
                 });
+                
+                pageNumberMap[spreadIndex] = [leftPageNum, rightPageNum];
+                spreadIndex++;
             }
             
-            // 3. Концовка (если есть)
+            // 3. Оставшаяся непарная страница (если есть)
+            if (remainder === 1) {
+                const pageNum = startIndex + (pairsCount * 2) + 1;
+                allSpreads.push({
+                    type: 'single',
+                    images: [contentImages[contentImages.length - 1]],
+                    pageNumbers: [pageNum]
+                });
+                pageNumberMap[spreadIndex] = [pageNum];
+                spreadIndex++;
+            }
+            
+            // 4. Концовка
             if (HAS_ENDING && IMAGE_FILES.length > 1) {
                 allSpreads.push({
                     type: 'ending',
                     images: [IMAGE_FILES[IMAGE_FILES.length - 1]],
-                    displayName: 'Конец'
+                    pageNumbers: [TOTAL_PAGES]
                 });
+                pageNumberMap[spreadIndex] = [TOTAL_PAGES];
+                spreadIndex++;
             }
             
             totalSpreads = allSpreads.length;
             
-            console.log('Расчет разворотов:', {
-                'Всего картинок': IMAGE_FILES.length,
-                'Обложка': HAS_COVER ? 'Да' : 'Нет',
-                'Концовка': HAS_ENDING ? 'Да' : 'Нет',
+            console.log('Расчет завершен:', {
                 'Всего разворотов': totalSpreads,
-                'Распределение': allSpreads.map(s => `${s.type}: ${s.images.length} стр.`)
+                'Распределение': allSpreads.map((s, i) => 
+                    `${i+1}. ${s.type} стр.${s.pageNumbers.join('-')}`
+                )
             });
             
             return allSpreads;
@@ -265,7 +297,7 @@
             
             spreads.forEach((spread, spreadIndex) => {
                 if (spread.type === 'spread') {
-                    // РАЗВОРОТ (2 страницы)
+                    // РАЗВОРОТ
                     const spreadEl = document.createElement('div');
                     spreadEl.className = 'spread';
                     spreadEl.dataset.spreadIndex = spreadIndex;
@@ -273,10 +305,11 @@
                     spread.images.forEach((imgSrc, imgIndex) => {
                         const halfPage = document.createElement('div');
                         halfPage.className = 'half-page';
+                        halfPage.dataset.pageNumber = spread.pageNumbers[imgIndex];
                         
                         const img = new Image();
                         img.src = imgSrc;
-                        img.alt = `Страница ${spreadIndex * 2 + imgIndex + 1}`;
+                        img.alt = `Страница ${spread.pageNumbers[imgIndex]}`;
                         
                         setupImageHandlers(img, imgSrc);
                         halfPage.appendChild(img);
@@ -285,14 +318,15 @@
                     
                     slider.appendChild(spreadEl);
                 } else {
-                    // ОДИНОЧНАЯ СТРАНИКА (обложка, конец или непарная)
+                    // ОДИНОЧНАЯ
                     const page = document.createElement('div');
                     page.className = 'page';
                     page.dataset.spreadIndex = spreadIndex;
+                    page.dataset.pageNumber = spread.pageNumbers[0];
                     
                     const img = new Image();
                     img.src = spread.images[0];
-                    img.alt = spread.displayName;
+                    img.alt = `Страница ${spread.pageNumbers[0]}`;
                     
                     setupImageHandlers(img, spread.images[0]);
                     page.appendChild(img);
@@ -300,7 +334,6 @@
                 }
             });
             
-            // Обновляем размеры
             setTimeout(() => {
                 updateSliderSize();
                 goToSpread(0);
@@ -343,28 +376,37 @@
             
             updateCounter();
             updateButtons();
-            
-            console.log(`Перешли на: ${allSpreads[currentSpread].displayName}`);
         }
         
         function nextSpread() {
-            if (currentSpread < totalSpreads - 1) {
-                goToSpread(currentSpread + 1);
-            }
+            if (currentSpread < totalSpreads - 1) goToSpread(currentSpread + 1);
         }
         
         function prevSpread() {
-            if (currentSpread > 0) {
-                goToSpread(currentSpread - 1);
-            }
+            if (currentSpread > 0) goToSpread(currentSpread - 1);
         }
         
+        // ИЗМЕНЕНИЕ 4: Функция для двойной нумерации
         function updateCounter() {
             const spread = allSpreads[currentSpread];
-            counter.textContent = `${currentSpread + 1} / ${totalSpreads}`;
+            const pageNumbers = pageNumberMap[currentSpread];
             
-            // Дополнительная информация в консоль
-            console.log(`[${currentSpread + 1}/${totalSpreads}] ${spread.displayName}: ${spread.images.join(', ')}`);
+            let counterText;
+            
+            if (pageNumbers.length === 1) {
+                // Одиночная страница
+                counterText = `${pageNumbers[0]} / ${TOTAL_PAGES}`;
+            } else {
+                // Разворот
+                counterText = `${pageNumbers[0]}-${pageNumbers[1]} / ${TOTAL_PAGES}`;
+            }
+            
+            // Добавляем тип страницы
+            let typeLabel = '';
+            if (spread.type === 'cover') typeLabel = ' (Обложка)';
+            if (spread.type === 'ending') typeLabel = ' (Конец)';
+            
+            counter.textContent = counterText + typeLabel;
         }
         
         function updateButtons() {
@@ -404,11 +446,7 @@
         // ========== ЗАПУСК ==========
         function init() {
             console.log('=== КНИГА С РАЗВОРОТАМИ ===');
-            console.log('Настройки:', {
-                'Всего страниц': TOTAL_PAGES,
-                'Обложка': HAS_COVER,
-                'Концовка': HAS_ENDING
-            });
+            console.log('Настройки:', {TOTAL_PAGES, HAS_COVER, HAS_ENDING});
             
             createPages();
             setupControls();
